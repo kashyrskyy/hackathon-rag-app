@@ -13,7 +13,8 @@ try:
     DDGS_AVAILABLE = True
 except ImportError:
     DDGS_AVAILABLE = False
-    st.warning("⚠️ duckduckgo-search not installed. Web search will use fallback method.")
+    # Don't show warning here - it shows on every page load
+    # st.warning("⚠️ duckduckgo-search not installed. Web search will use fallback method.")
 
 class WebSearcher:
     """Handles web search operations"""
@@ -51,12 +52,19 @@ class WebSearcher:
         
         self.last_search_time = time.time()
         
-        if self.serp_api_key:
-            return self._search_with_serpapi(query, num_results)
-        elif DDGS_AVAILABLE:
-            return self._search_with_ddgs_library(query, num_results)
-        else:
-            return self._search_with_duckduckgo_api(query, num_results)
+        try:
+            if self.serp_api_key:
+                st.info("🔍 Using SerpAPI for web search...")
+                return self._search_with_serpapi(query, num_results)
+            elif DDGS_AVAILABLE:
+                st.info("🔍 Searching the web with DuckDuckGo...")
+                return self._search_with_ddgs_library(query, num_results)
+            else:
+                st.info("🔍 Using DuckDuckGo API for web search...")
+                return self._search_with_duckduckgo_api(query, num_results)
+        except Exception as e:
+            st.warning(f"Web search failed: {str(e)[:100]}...")
+            return self._create_fallback_result(query)
     
     def _search_with_serpapi(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Search using SerpAPI (requires API key)"""

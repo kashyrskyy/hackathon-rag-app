@@ -191,6 +191,16 @@ def main():
         num_doc_results = st.slider("Document Results", 3, 10, 5)
         num_web_results = st.slider("Web Results", 1, 5, 2)
         
+        # Web search status
+        if enable_web_search:
+            try:
+                from duckduckgo_search import DDGS
+                st.success("✅ DuckDuckGo Search Available")
+            except ImportError:
+                st.warning("⚠️ Using fallback web search")
+        else:
+            st.info("🚫 Web search disabled")
+        
         # Vector store status
         st.subheader("📊 Status")
         doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
@@ -209,6 +219,11 @@ def main():
         
         # Quick actions
         st.subheader("⚡ Quick Actions")
+        
+        # Debug mode toggle
+        debug_mode = st.checkbox("🔧 Debug Mode", value=False, help="Show detailed error messages and debug info")
+        if debug_mode != st.session_state.get('debug_mode', False):
+            st.session_state.debug_mode = debug_mode
         
         if st.button("🗑️ Clear All Data"):
             # Clear all session state
@@ -276,8 +291,8 @@ def main():
                 
                 st.success(st.session_state.processing_status)
     
-    # Show processing status if available
-    if st.session_state.processing_status:
+    # Show processing status if available (but not if we just processed documents)
+    elif st.session_state.processing_status:
         st.info(st.session_state.processing_status)
     
     # Show document statistics
