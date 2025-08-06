@@ -24,42 +24,38 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-try:
-    from utils.llm_client import GeminiClient
-    from utils.document_processor import DocumentProcessor
-    from utils.vector_store import VectorStore
-    from utils.web_search import WebSearcher
-except ImportError as e:
-    st.error(f"Import error: {e}")
-    st.error("Please check that all utility files are present in the utils/ directory")
-    st.error("If this persists on Streamlit Cloud, try restarting the app.")
-    st.stop()
-except KeyError as e:
-    # Handle Streamlit Cloud module caching issues
-    st.warning(f"Module caching issue detected: {e}")
-    st.info("🔄 Attempting to reload modules...")
-    
-    # Try to force reload
-    import sys
-    import importlib
-    
-    # Clear module cache
-    modules_to_clear = [key for key in sys.modules.keys() if key.startswith('utils')]
-    for module in modules_to_clear:
-        if module in sys.modules:
-            del sys.modules[module]
-    
-    # Try imports again
+# Import utilities with error handling
+def import_utils():
+    """Import utility modules with error handling"""
     try:
         from utils.llm_client import GeminiClient
-        from utils.document_processor import DocumentProcessor  
+        from utils.document_processor import DocumentProcessor
         from utils.vector_store import VectorStore
         from utils.web_search import WebSearcher
-        st.success("✅ Modules reloaded successfully!")
-    except Exception as reload_error:
-        st.error(f"Failed to reload modules: {reload_error}")
-        st.error("Please refresh the page or restart the app.")
-        st.stop()
+        return GeminiClient, DocumentProcessor, VectorStore, WebSearcher, None
+    except (ImportError, KeyError) as e:
+        # Handle Streamlit Cloud module caching issues
+        import sys
+        import importlib
+        
+        # Clear module cache
+        modules_to_clear = [key for key in sys.modules.keys() if key.startswith('utils')]
+        for module in modules_to_clear:
+            if module in sys.modules:
+                del sys.modules[module]
+        
+        # Try imports again
+        try:
+            from utils.llm_client import GeminiClient
+            from utils.document_processor import DocumentProcessor  
+            from utils.vector_store import VectorStore
+            from utils.web_search import WebSearcher
+            return GeminiClient, DocumentProcessor, VectorStore, WebSearcher, None
+        except Exception as reload_error:
+            return None, None, None, None, f"Import failed: {str(e)} | Reload failed: {str(reload_error)}"
+
+# Try to import utilities
+GeminiClient, DocumentProcessor, VectorStore, WebSearcher, import_error = import_utils()
 
 # Configure page
 st.set_page_config(
@@ -68,6 +64,17 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Handle import errors after page config
+if import_error:
+    st.error("🚨 **Module Import Error**")
+    st.error(import_error)
+    st.error("**Possible solutions:**")
+    st.error("1. Refresh the page (Ctrl+F5)")
+    st.error("2. Restart the Streamlit app")
+    st.error("3. Check that all files are present in the utils/ directory")
+    st.info("This is likely a temporary Streamlit Cloud caching issue.")
+    st.stop()
 
 # Custom CSS for better UI
 st.markdown("""
@@ -163,7 +170,11 @@ def main():
     api_key = get_api_key()
     
     # Initialize services
-    web_searcher = WebSearcher(st.secrets.get("SERP_API_KEY", None) if "SERP_API_KEY" in st.secrets else None)
+    web_searcher = None
+    if WebSearcher:
+        web_searcher = WebSearcher(st.secrets.get("SERP_API_KEY", None) if "SERP_API_KEY" in st.secrets else None)
+    else:
+        st.warning("⚠️ Web search functionality is disabled due to import issues")
     
     # Initialize LLM client if API key is available
     llm_client = None
@@ -355,7 +366,7 @@ def main():
                 
                 # Search web if enabled
                 web_results = []
-                if enable_web_search:
+                if enable_web_search and web_searcher:
                     try:
                         web_results = web_searcher.search_web(query, num_web_results)
                         if st.session_state.get('debug_mode', False):
@@ -365,6 +376,8 @@ def main():
                     except Exception as e:
                         st.warning(f"Web search failed: {str(e)[:100]}...")
                         web_results = []
+                elif enable_web_search and not web_searcher:
+                    st.warning("⚠️ Web search is enabled but not available due to import issues")
                 
                 # Prepare context
                 context_parts = []
