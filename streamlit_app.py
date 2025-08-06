@@ -173,8 +173,16 @@ def main():
     
     # Initialize services
     web_searcher = None
+    serp_api_key = st.secrets.get("SERP_API_KEY", None) if "SERP_API_KEY" in st.secrets else None
+    
     if WebSearcher:
-        web_searcher = WebSearcher(st.secrets.get("SERP_API_KEY", None) if "SERP_API_KEY" in st.secrets else None)
+        web_searcher = WebSearcher(serp_api_key)
+        
+        # Show SerpAPI status in debug mode or sidebar
+        if serp_api_key:
+            st.success("🔑 SerpAPI key configured - using premium web search")
+        else:
+            st.info("🔍 Using free DuckDuckGo search (rate limited)")
     else:
         st.warning("⚠️ Web search functionality is disabled due to import issues")
     

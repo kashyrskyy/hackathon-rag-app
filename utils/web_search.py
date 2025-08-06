@@ -54,13 +54,13 @@ class WebSearcher:
         
         try:
             if self.serp_api_key:
-                st.info("🔍 Using SerpAPI for web search...")
+                st.info("🔑 Using SerpAPI for web search (premium)...")
                 return self._search_with_serpapi(query, num_results)
             elif DDGS_AVAILABLE:
-                st.info("🔍 Searching the web with DuckDuckGo...")
+                st.info("🔍 Searching the web with DuckDuckGo (free)...")
                 return self._search_with_ddgs_library(query, num_results)
             else:
-                st.info("🔍 Using DuckDuckGo API for web search...")
+                st.info("🔍 Using DuckDuckGo API for web search (fallback)...")
                 return self._search_with_duckduckgo_api(query, num_results)
         except Exception as e:
             st.warning(f"Web search failed: {str(e)[:100]}...")
@@ -93,7 +93,15 @@ class WebSearcher:
             return results
             
         except Exception as e:
-            st.warning(f"SerpAPI search failed: {str(e)}")
+            error_msg = str(e)
+            if "401" in error_msg or "unauthorized" in error_msg.lower():
+                st.error("🔑 SerpAPI key is invalid or expired. Check your API key in Streamlit secrets.")
+            elif "403" in error_msg or "quota" in error_msg.lower():
+                st.warning("⚠️ SerpAPI quota exceeded. Falling back to DuckDuckGo search.")
+            else:
+                st.warning(f"SerpAPI search failed: {error_msg[:100]}...")
+            
+            st.info("🔄 Falling back to DuckDuckGo search...")
             if DDGS_AVAILABLE:
                 return self._search_with_ddgs_library(query, num_results)
             else:
