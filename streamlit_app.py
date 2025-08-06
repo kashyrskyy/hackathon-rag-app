@@ -181,9 +181,6 @@ def main():
         # Show SerpAPI status
         if serp_api_key:
             st.success("🔑 SerpAPI configured - premium Google search active")
-        else:
-            st.info("🔍 Using DuckDuckGo search (free but rate limited)")
-            st.info("💡 Add SerpAPI key for reliable Google search results")
     else:
         st.warning("⚠️ Web search functionality is disabled due to import issues")
     
