@@ -369,10 +369,21 @@ def main():
                 if enable_web_search and web_searcher:
                     try:
                         web_results = web_searcher.search_web(query, num_web_results)
+                        
+                        # Filter out fallback results
+                        real_web_results = [r for r in web_results if "AI Knowledge Response" not in r.get("title", "")]
+                        
                         if st.session_state.get('debug_mode', False):
-                            st.info(f"🔍 Web search returned {len(web_results)} results")
-                            for i, result in enumerate(web_results[:2], 1):
-                                st.text(f"Result {i}: {result.get('title', 'No title')[:100]}...")
+                            st.info(f"🔍 Web search returned {len(web_results)} results ({len(real_web_results)} real)")
+                            if real_web_results:
+                                for i, result in enumerate(real_web_results[:2], 1):
+                                    st.text(f"Real Result {i}: {result.get('title', 'No title')[:100]}...")
+                            else:
+                                st.warning("⚠️ All web results were fallback responses (rate limited)")
+                        
+                        # Use only real web results
+                        web_results = real_web_results
+                        
                     except Exception as e:
                         st.warning(f"Web search failed: {str(e)[:100]}...")
                         web_results = []
@@ -404,12 +415,14 @@ def main():
                 # Debug context information
                 if st.session_state.get('debug_mode', False):
                     st.info(f"📄 Document results: {len(doc_results)}")
-                    st.info(f"🌐 Web results: {len(web_results)}")
+                    st.info(f"🌐 Real web results: {len(web_results)}")
                     st.info(f"📝 Context length: {len(context)} characters")
                     if web_results:
-                        st.success("✅ Web search results will be included in AI response")
+                        st.success("✅ Real web search results will be included in AI response")
                     elif enable_web_search:
-                        st.warning("⚠️ Web search enabled but no results returned")
+                        st.warning("⚠️ Web search enabled but no real results returned (likely rate limited)")
+                    else:
+                        st.info("🚫 Web search disabled - using document knowledge only")
                 
                 # Create prompt
                 prompt = f"""You are responding as a {perspective}, and your response must be tailored for an audience of {audience}.

@@ -101,57 +101,54 @@ class WebSearcher:
     
     def _search_with_ddgs_library(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Enhanced search using duckduckgo-search library with rate limiting handling"""
-        max_retries = 2
-        base_delay = 2
+        max_retries = 3
+        base_delay = 3
         
         for attempt in range(max_retries):
             try:
                 results = []
                 # Progressive delay to avoid rate limiting
-                if attempt > 0:
-                    delay = base_delay * (attempt + 1)
-                    time.sleep(delay)
-                else:
-                    time.sleep(1)
+                delay = base_delay * (attempt + 1) if attempt > 0 else 2
+                time.sleep(delay)
                 
-                # Use different approaches based on attempt
-                if attempt == 0:
-                    # First attempt: regular text search
-                    with DDGS() as ddgs:
-                        search_results = ddgs.text(query, max_results=num_results, safesearch='moderate')
-                        for result in search_results:
+                # Use different search strategies
+                search_params = [
+                    {"safesearch": "moderate", "timelimit": None},
+                    {"safesearch": "off", "region": "us-en"},
+                    {"max_results": min(num_results, 3), "timelimit": "m"}  # Recent results only
+                ][attempt % 3]
+                
+                with DDGS() as ddgs:
+                    search_results = ddgs.text(query, max_results=num_results, **search_params)
+                    for result in search_results:
+                        title = result.get("title", "")
+                        snippet = result.get("body", "") or result.get("content", "")
+                        url = result.get("href", "")
+                        
+                        # Skip if this looks like a fallback result
+                        if "AI Knowledge Response" not in title and snippet and len(snippet) > 50:
                             results.append({
-                                "title": result.get("title", ""),
-                                "snippet": result.get("body", "") or result.get("content", ""),
-                                "url": result.get("href", "")
-                            })
-                else:
-                    # Second attempt: try with different parameters
-                    with DDGS() as ddgs:
-                        search_results = ddgs.text(query, max_results=min(num_results, 3), region='us-en')
-                        for result in search_results:
-                            results.append({
-                                "title": result.get("title", ""),
-                                "snippet": result.get("body", "") or result.get("content", ""),
-                                "url": result.get("href", "")
+                                "title": title,
+                                "snippet": snippet,
+                                "url": url
                             })
                 
                 if results:
                     return results
                     
             except Exception as e:
-                error_msg = str(e)
-                if "ratelimit" in error_msg.lower() or "202" in error_msg or "429" in error_msg:
+                error_msg = str(e).lower()
+                if any(term in error_msg for term in ["ratelimit", "202", "429", "blocked", "forbidden"]):
                     if attempt == max_retries - 1:
-                        # Final attempt failed - use fallback
-                        return self._search_with_duckduckgo_api(query, num_results)
+                        # Final attempt failed - try alternative search
+                        return self._search_with_alternative_method(query, num_results)
                     continue  # Try again with longer delay
                 else:
                     # Non-rate-limit error - try fallback immediately
                     break
         
-        # All attempts failed - try fallback API
-        return self._search_with_duckduckgo_api(query, num_results)
+        # All attempts failed - try alternative search
+        return self._search_with_alternative_method(query, num_results)
     
     def _search_with_duckduckgo_api(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Fallback search using DuckDuckGo (no API key required)"""
@@ -193,6 +190,16 @@ class WebSearcher:
         except Exception as e:
             st.warning(f"Web search failed: {str(e)}")
             return self._create_fallback_result(query)
+    
+    def _search_with_alternative_method(self, query: str, num_results: int) -> List[Dict[str, str]]:
+        """Alternative search method when DuckDuckGo fails"""
+        # Try DuckDuckGo API first
+        ddg_results = self._search_with_duckduckgo_api(query, num_results)
+        if ddg_results and not any("AI Knowledge Response" in result.get("title", "") for result in ddg_results):
+            return ddg_results
+        
+        # If that fails, return empty list to indicate no web results
+        return []
     
     def _create_fallback_result(self, query: str) -> List[Dict[str, str]]:
         """Create a fallback result when search fails"""
