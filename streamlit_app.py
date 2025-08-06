@@ -77,7 +77,12 @@ def initialize_session_state():
     """Initialize session state variables"""
     # Core components
     if "vector_store" not in st.session_state:
-        st.session_state.vector_store = VectorStore()
+        try:
+            st.session_state.vector_store = VectorStore()
+        except Exception as e:
+            st.error(f"Failed to initialize vector store: {str(e)}")
+            st.info("📄 App will run in web-search only mode")
+            st.session_state.vector_store = None
     
     # Processing status
     if "documents_processed" not in st.session_state:
@@ -160,7 +165,7 @@ def main():
         
         # Vector store status
         st.subheader("📊 Status")
-        doc_count = st.session_state.vector_store.get_collection_count()
+        doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
         col_a, col_b = st.columns(2)
         col_a.metric("Documents", doc_count)
         col_b.metric("Queries", st.session_state.query_count)
@@ -179,7 +184,8 @@ def main():
         
         if st.button("🗑️ Clear All Data"):
             # Clear all session state
-            st.session_state.vector_store.clear_collection()
+            if st.session_state.vector_store:
+                st.session_state.vector_store.clear_collection()
             st.session_state.documents_processed = False
             st.session_state.processing_status = ""
             st.session_state.last_query = ""
@@ -230,7 +236,10 @@ def main():
                                 col_c.metric("Est. Tokens", stats['estimated_tokens'])
                         
                         # Add to vector store
-                        st.session_state.vector_store.add_documents(documents, all_chunks)
+                        if st.session_state.vector_store:
+                            st.session_state.vector_store.add_documents(documents, all_chunks)
+                        else:
+                            st.warning("⚠️ Vector store not available - documents processed but search disabled")
                         st.session_state.documents_processed = True
                         st.session_state.processing_status = f"✅ Processed {len(documents)} documents with {sum(len(chunks) for chunks in all_chunks)} total chunks"
                         st.session_state.document_stats = [(filename, DocumentProcessor.get_document_stats(text)) for filename, text in documents]
@@ -264,13 +273,14 @@ def main():
         )
         
         if query and st.button("🔍 Get Answer"):
-            if not st.session_state.documents_processed and st.session_state.vector_store.get_collection_count() == 0:
-                st.warning("⚠️ Please upload and process documents first!")
+            doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
+            if not st.session_state.documents_processed and doc_count == 0 and not enable_web_search:
+                st.warning("⚠️ Please upload documents or enable web search!")
             else:
                 with st.spinner("🧠 Generating answer..."):
                     
                     # Search documents
-                    doc_results = st.session_state.vector_store.search(query, num_doc_results)
+                    doc_results = st.session_state.vector_store.search(query, num_doc_results) if st.session_state.vector_store else []
                     
                     # Search web if enabled
                     web_results = []

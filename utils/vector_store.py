@@ -19,9 +19,23 @@ class VectorStore:
             collection_name: Name of the ChromaDB collection
         """
         self.collection_name = collection_name
-        self.client = chromadb.Client()
-        self.collection = self.client.get_or_create_collection(name=collection_name)
+        self.client = None
+        self.collection = None
         self.embedding_model = self._load_embedding_model()
+        self._initialize_client()
+    
+    def _initialize_client(self):
+        """Initialize ChromaDB client with error handling"""
+        try:
+            # Try to create client with ephemeral mode for Streamlit Cloud
+            self.client = chromadb.Client()
+            self.collection = self.client.get_or_create_collection(name=self.collection_name)
+            st.success("✅ Vector store initialized successfully")
+        except Exception as e:
+            st.warning(f"⚠️ Vector store initialization failed: {str(e)}")
+            st.info("📄 Vector search will be disabled. You can still use the app without document search.")
+            self.client = None
+            self.collection = None
     
     @st.cache_resource
     def _load_embedding_model(_self):
@@ -40,8 +54,8 @@ class VectorStore:
             documents: List of (filename, full_text) tuples
             chunks_per_doc: List of chunk lists for each document
         """
-        if not self.embedding_model:
-            st.error("Embedding model not loaded")
+        if not self.embedding_model or not self.client or not self.collection:
+            st.error("Vector store not properly initialized - document search disabled")
             return
         
         all_chunks = []
@@ -88,8 +102,8 @@ class VectorStore:
         Returns:
             List of search results with metadata
         """
-        if not self.embedding_model:
-            st.error("Embedding model not loaded")
+        if not self.embedding_model or not self.client or not self.collection:
+            st.warning("Vector store not available - skipping document search")
             return []
         
         try:
@@ -121,6 +135,10 @@ class VectorStore:
     
     def clear_collection(self):
         """Clear all documents from the collection"""
+        if not self.client or not self.collection:
+            st.warning("Vector store not available")
+            return
+            
         try:
             # Delete and recreate collection
             self.client.delete_collection(name=self.collection_name)
@@ -131,6 +149,8 @@ class VectorStore:
     
     def get_collection_count(self) -> int:
         """Get number of documents in collection"""
+        if not self.collection:
+            return 0
         try:
             return self.collection.count()
         except:
