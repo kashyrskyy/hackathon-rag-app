@@ -32,7 +32,34 @@ try:
 except ImportError as e:
     st.error(f"Import error: {e}")
     st.error("Please check that all utility files are present in the utils/ directory")
+    st.error("If this persists on Streamlit Cloud, try restarting the app.")
     st.stop()
+except KeyError as e:
+    # Handle Streamlit Cloud module caching issues
+    st.warning(f"Module caching issue detected: {e}")
+    st.info("🔄 Attempting to reload modules...")
+    
+    # Try to force reload
+    import sys
+    import importlib
+    
+    # Clear module cache
+    modules_to_clear = [key for key in sys.modules.keys() if key.startswith('utils')]
+    for module in modules_to_clear:
+        if module in sys.modules:
+            del sys.modules[module]
+    
+    # Try imports again
+    try:
+        from utils.llm_client import GeminiClient
+        from utils.document_processor import DocumentProcessor  
+        from utils.vector_store import VectorStore
+        from utils.web_search import WebSearcher
+        st.success("✅ Modules reloaded successfully!")
+    except Exception as reload_error:
+        st.error(f"Failed to reload modules: {reload_error}")
+        st.error("Please refresh the page or restart the app.")
+        st.stop()
 
 # Configure page
 st.set_page_config(
@@ -191,15 +218,16 @@ def main():
         num_doc_results = st.slider("Document Results", 3, 10, 5)
         num_web_results = st.slider("Web Results", 1, 5, 2)
         
-        # Web search status
-        if enable_web_search:
-            try:
-                from duckduckgo_search import DDGS
-                st.success("✅ DuckDuckGo Search Available")
-            except ImportError:
-                st.warning("⚠️ Using fallback web search")
-        else:
-            st.info("🚫 Web search disabled")
+        # Web search status (only show in debug mode)
+        if st.session_state.get('debug_mode', False):
+            if enable_web_search:
+                try:
+                    from duckduckgo_search import DDGS
+                    st.success("✅ DuckDuckGo Search Available")
+                except ImportError:
+                    st.warning("⚠️ Using fallback web search")
+            else:
+                st.info("🚫 Web search disabled")
         
         # Vector store status
         st.subheader("📊 Status")
@@ -328,7 +356,15 @@ def main():
                 # Search web if enabled
                 web_results = []
                 if enable_web_search:
-                    web_results = web_searcher.search_web(query, num_web_results)
+                    try:
+                        web_results = web_searcher.search_web(query, num_web_results)
+                        if st.session_state.get('debug_mode', False):
+                            st.info(f"🔍 Web search returned {len(web_results)} results")
+                            for i, result in enumerate(web_results[:2], 1):
+                                st.text(f"Result {i}: {result.get('title', 'No title')[:100]}...")
+                    except Exception as e:
+                        st.warning(f"Web search failed: {str(e)[:100]}...")
+                        web_results = []
                 
                 # Prepare context
                 context_parts = []
@@ -351,6 +387,16 @@ def main():
                         context_parts.append("")
                 
                 context = "\n".join(context_parts)
+                
+                # Debug context information
+                if st.session_state.get('debug_mode', False):
+                    st.info(f"📄 Document results: {len(doc_results)}")
+                    st.info(f"🌐 Web results: {len(web_results)}")
+                    st.info(f"📝 Context length: {len(context)} characters")
+                    if web_results:
+                        st.success("✅ Web search results will be included in AI response")
+                    elif enable_web_search:
+                        st.warning("⚠️ Web search enabled but no results returned")
                 
                 # Create prompt
                 prompt = f"""You are responding as a {perspective}, and your response must be tailored for an audience of {audience}.
