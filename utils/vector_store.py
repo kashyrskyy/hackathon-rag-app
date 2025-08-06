@@ -64,9 +64,11 @@ class VectorStore:
         except Exception as e:
             st.warning("⚠️ ChromaDB failed - using in-memory vector storage")
             st.info("📄 Document search will work in memory (data won't persist between sessions)")
+            st.info(f"🔧 Debug: ChromaDB error was: {str(e)[:100]}...")
             self.client = None
             self.collection = None
             self.use_fallback = True
+            st.success(f"✅ Fallback mode enabled: use_fallback={self.use_fallback}")
     
     @st.cache_resource
     def _load_embedding_model(_self):
@@ -89,6 +91,9 @@ class VectorStore:
             st.error("Embedding model not loaded - document search disabled")
             return
             
+        # Check if we have either ChromaDB or fallback storage available
+        st.info(f"🔧 Debug add_documents: use_fallback={self.use_fallback}, client={self.client is not None}, collection={self.collection is not None}")
+        
         if not self.use_fallback and (not self.client or not self.collection):
             st.error("Vector store not properly initialized - document search disabled")
             return
