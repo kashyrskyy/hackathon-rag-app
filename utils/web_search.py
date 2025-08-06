@@ -79,9 +79,11 @@ class WebSearcher:
                 return self._search_with_duckduckgo_api(query, num_results)
     
     def _search_with_ddgs_library(self, query: str, num_results: int) -> List[Dict[str, str]]:
-        """Enhanced search using duckduckgo-search library"""
+        """Enhanced search using duckduckgo-search library with rate limiting handling"""
         try:
             results = []
+            # Add delay to avoid rate limiting
+            time.sleep(1)
             with DDGS() as ddgs:
                 search_results = ddgs.text(query, max_results=num_results)
                 for result in search_results:
@@ -94,8 +96,13 @@ class WebSearcher:
             return results if results else self._create_fallback_result(query)
             
         except Exception as e:
-            st.warning(f"DDGS library search failed: {str(e)}")
-            return self._search_with_duckduckgo_api(query, num_results)
+            error_msg = str(e)
+            if "ratelimit" in error_msg.lower() or "202" in error_msg:
+                st.warning("🚫 Web search temporarily rate limited. Using knowledge-based response...")
+                return self._create_fallback_result(query)
+            else:
+                st.warning(f"DDGS search failed: {error_msg[:100]}...")
+                return self._search_with_duckduckgo_api(query, num_results)
     
     def _search_with_duckduckgo_api(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Fallback search using DuckDuckGo (no API key required)"""
@@ -141,8 +148,8 @@ class WebSearcher:
     def _create_fallback_result(self, query: str) -> List[Dict[str, str]]:
         """Create a fallback result when search fails"""
         return [{
-            "title": f"Search: {query}",
-            "snippet": f"Web search temporarily unavailable. Using document knowledge only.",
+            "title": f"Knowledge-Based Response for: {query}",
+            "snippet": f"Web search is temporarily unavailable due to rate limiting. The AI will provide a response based on its training knowledge and any uploaded documents.",
             "url": ""
         }]
     
