@@ -41,27 +41,35 @@ class WebSearcher:
         Returns:
             List of search results with title, snippet, and URL
         """
-        # Rate limiting check
-        current_time = time.time()
-        time_since_last = current_time - self.last_search_time
-        
-        if time_since_last < self.min_search_interval:
-            remaining_wait = self.min_search_interval - time_since_last
-            st.info(f"⏱️ Web search rate limited. Waiting {remaining_wait:.1f} seconds...")
-            time.sleep(remaining_wait)
-        
-        self.last_search_time = time.time()
+        # Rate limiting check (only for DuckDuckGo, not SerpAPI)
+        if not self.serp_api_key:
+            current_time = time.time()
+            time_since_last = current_time - self.last_search_time
+            
+            if time_since_last < self.min_search_interval:
+                remaining_wait = self.min_search_interval - time_since_last
+                st.info(f"⏱️ DuckDuckGo rate limited. Waiting {remaining_wait:.1f} seconds...")
+                time.sleep(remaining_wait)
+            
+            self.last_search_time = time.time()
         
         try:
+            # Always try SerpAPI first if available
             if self.serp_api_key:
-                st.info("🔑 Using SerpAPI for web search (premium)...")
-                return self._search_with_serpapi(query, num_results)
-            elif DDGS_AVAILABLE:
-                st.info("🔍 Searching the web with DuckDuckGo (free)...")
+                st.info("🔑 Using SerpAPI for web search...")
+                results = self._search_with_serpapi(query, num_results)
+                if results:  # SerpAPI succeeded
+                    return results
+                # If SerpAPI fails, continue to fallbacks below
+            
+            # Fallback to DuckDuckGo only if SerpAPI failed or not available
+            if DDGS_AVAILABLE:
+                st.info("🔍 Falling back to DuckDuckGo search...")
                 return self._search_with_ddgs_library(query, num_results)
             else:
-                st.info("🔍 Using DuckDuckGo API for web search (fallback)...")
+                st.info("🔍 Using DuckDuckGo API as final fallback...")
                 return self._search_with_duckduckgo_api(query, num_results)
+                
         except Exception as e:
             st.warning(f"Web search failed: {str(e)[:100]}...")
             return self._create_fallback_result(query)
@@ -97,15 +105,12 @@ class WebSearcher:
             if "401" in error_msg or "unauthorized" in error_msg.lower():
                 st.error("🔑 SerpAPI key is invalid or expired. Check your API key in Streamlit secrets.")
             elif "403" in error_msg or "quota" in error_msg.lower():
-                st.warning("⚠️ SerpAPI quota exceeded. Falling back to DuckDuckGo search.")
+                st.warning("⚠️ SerpAPI quota exceeded for today.")
             else:
                 st.warning(f"SerpAPI search failed: {error_msg[:100]}...")
             
-            st.info("🔄 Falling back to DuckDuckGo search...")
-            if DDGS_AVAILABLE:
-                return self._search_with_ddgs_library(query, num_results)
-            else:
-                return self._search_with_duckduckgo_api(query, num_results)
+            # Return empty list to let main search function handle fallback
+            return []
     
     def _search_with_ddgs_library(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Enhanced search using duckduckgo-search library with rate limiting handling"""

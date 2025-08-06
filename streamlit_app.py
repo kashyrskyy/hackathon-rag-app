@@ -178,11 +178,12 @@ def main():
     if WebSearcher:
         web_searcher = WebSearcher(serp_api_key)
         
-        # Show SerpAPI status in debug mode or sidebar
+        # Show SerpAPI status
         if serp_api_key:
-            st.success("🔑 SerpAPI key configured - using premium web search")
+            st.success("🔑 SerpAPI configured - premium Google search active")
         else:
-            st.info("🔍 Using free DuckDuckGo search (rate limited)")
+            st.info("🔍 Using DuckDuckGo search (free but rate limited)")
+            st.info("💡 Add SerpAPI key for reliable Google search results")
     else:
         st.warning("⚠️ Web search functionality is disabled due to import issues")
     
@@ -393,7 +394,10 @@ def main():
                         
                         # Show rate limiting notice if no real results
                         if not real_web_results and enable_web_search:
-                            st.info("💡 **Web search is currently rate limited.** For better web search, consider getting a free SerpAPI key (100 searches/month) and adding it to Streamlit secrets as `SERP_API_KEY`.")
+                            if not serp_api_key:
+                                st.info("💡 **DuckDuckGo search is rate limited.** For reliable web search, add your SerpAPI key to Streamlit secrets as `SERP_API_KEY` (100 free searches/month).")
+                            else:
+                                st.warning("⚠️ SerpAPI search failed. Check your API key or quota status.")
                         
                         # Use only real web results
                         web_results = real_web_results
