@@ -17,10 +17,22 @@ from typing import List, Dict
 import time
 
 # Import custom utilities
-from utils.llm_client import GeminiClient
-from utils.document_processor import DocumentProcessor
-from utils.vector_store import VectorStore
-from utils.web_search import WebSearcher
+import sys
+
+# Add current directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+try:
+    from utils.llm_client import GeminiClient
+    from utils.document_processor import DocumentProcessor
+    from utils.vector_store import VectorStore
+    from utils.web_search import WebSearcher
+except ImportError as e:
+    st.error(f"Import error: {e}")
+    st.error("Please check that all utility files are present in the utils/ directory")
+    st.stop()
 
 # Configure page
 st.set_page_config(
