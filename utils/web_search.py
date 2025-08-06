@@ -26,6 +26,8 @@ class WebSearcher:
             serp_api_key: Optional SerpAPI key for enhanced search
         """
         self.serp_api_key = serp_api_key
+        self.last_search_time = 0
+        self.min_search_interval = 3  # Minimum seconds between searches
     
     def search_web(self, query: str, num_results: int = 3) -> List[Dict[str, str]]:
         """
@@ -38,6 +40,17 @@ class WebSearcher:
         Returns:
             List of search results with title, snippet, and URL
         """
+        # Rate limiting check
+        current_time = time.time()
+        time_since_last = current_time - self.last_search_time
+        
+        if time_since_last < self.min_search_interval:
+            remaining_wait = self.min_search_interval - time_since_last
+            st.info(f"⏱️ Web search rate limited. Waiting {remaining_wait:.1f} seconds...")
+            time.sleep(remaining_wait)
+        
+        self.last_search_time = time.time()
+        
         if self.serp_api_key:
             return self._search_with_serpapi(query, num_results)
         elif DDGS_AVAILABLE:
@@ -80,29 +93,57 @@ class WebSearcher:
     
     def _search_with_ddgs_library(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Enhanced search using duckduckgo-search library with rate limiting handling"""
-        try:
-            results = []
-            # Add delay to avoid rate limiting
-            time.sleep(1)
-            with DDGS() as ddgs:
-                search_results = ddgs.text(query, max_results=num_results)
-                for result in search_results:
-                    results.append({
-                        "title": result.get("title", ""),
-                        "snippet": result.get("body", "") or result.get("content", ""),
-                        "url": result.get("href", "")
-                    })
-            
-            return results if results else self._create_fallback_result(query)
-            
-        except Exception as e:
-            error_msg = str(e)
-            if "ratelimit" in error_msg.lower() or "202" in error_msg:
-                st.warning("🚫 Web search temporarily rate limited. Using knowledge-based response...")
-                return self._create_fallback_result(query)
-            else:
-                st.warning(f"DDGS search failed: {error_msg[:100]}...")
-                return self._search_with_duckduckgo_api(query, num_results)
+        max_retries = 2
+        base_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                results = []
+                # Progressive delay to avoid rate limiting
+                if attempt > 0:
+                    delay = base_delay * (attempt + 1)
+                    time.sleep(delay)
+                else:
+                    time.sleep(1)
+                
+                # Use different approaches based on attempt
+                if attempt == 0:
+                    # First attempt: regular text search
+                    with DDGS() as ddgs:
+                        search_results = ddgs.text(query, max_results=num_results, safesearch='moderate')
+                        for result in search_results:
+                            results.append({
+                                "title": result.get("title", ""),
+                                "snippet": result.get("body", "") or result.get("content", ""),
+                                "url": result.get("href", "")
+                            })
+                else:
+                    # Second attempt: try with different parameters
+                    with DDGS() as ddgs:
+                        search_results = ddgs.text(query, max_results=min(num_results, 3), region='us-en')
+                        for result in search_results:
+                            results.append({
+                                "title": result.get("title", ""),
+                                "snippet": result.get("body", "") or result.get("content", ""),
+                                "url": result.get("href", "")
+                            })
+                
+                if results:
+                    return results
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "ratelimit" in error_msg.lower() or "202" in error_msg or "429" in error_msg:
+                    if attempt == max_retries - 1:
+                        # Final attempt failed - use fallback
+                        return self._search_with_duckduckgo_api(query, num_results)
+                    continue  # Try again with longer delay
+                else:
+                    # Non-rate-limit error - try fallback immediately
+                    break
+        
+        # All attempts failed - try fallback API
+        return self._search_with_duckduckgo_api(query, num_results)
     
     def _search_with_duckduckgo_api(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Fallback search using DuckDuckGo (no API key required)"""
@@ -148,8 +189,8 @@ class WebSearcher:
     def _create_fallback_result(self, query: str) -> List[Dict[str, str]]:
         """Create a fallback result when search fails"""
         return [{
-            "title": f"Knowledge-Based Response for: {query}",
-            "snippet": f"Web search is temporarily unavailable due to rate limiting. The AI will provide a response based on its training knowledge and any uploaded documents.",
+            "title": f"AI Knowledge Response: {query}",
+            "snippet": f"Web search is temporarily unavailable. The AI will respond using its training knowledge and any documents you've uploaded. For real-time information, please try again in a few moments.",
             "url": ""
         }]
     

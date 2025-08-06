@@ -31,51 +31,51 @@ class VectorStore:
     
     def _initialize_client(self):
         """Initialize ChromaDB client with error handling"""
-        try:
-            # Try different ChromaDB configurations for Streamlit Cloud compatibility
-            
-            # Option 1: Try ephemeral client (in-memory) with proper settings
+        initialization_methods = [
+            ("EphemeralClient", self._try_ephemeral_client),
+            ("Settings-based Client", self._try_settings_client),
+            ("Basic Client", self._try_basic_client)
+        ]
+        
+        for method_name, method_func in initialization_methods:
             try:
-                self.client = chromadb.EphemeralClient()
-                self.collection = self.client.get_or_create_collection(name=self.collection_name)
-                st.success("✅ Vector store initialized (ephemeral mode)")
-                return
-            except Exception as e1:
-                st.warning(f"Ephemeral ChromaDB failed: {str(e1)[:100]}...")
-            
-            # Option 2: Try with explicit settings for Streamlit Cloud
-            try:
-                import chromadb.config
-                settings = chromadb.config.Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True,
-                    is_persistent=False
-                )
-                self.client = chromadb.Client(settings)
-                self.collection = self.client.get_or_create_collection(name=self.collection_name)
-                st.success("✅ Vector store initialized (client mode)")
-                return
-            except Exception as e2:
-                st.warning(f"Settings-based ChromaDB failed: {str(e2)[:100]}...")
-            
-            # Option 3: Try basic client without settings
-            try:
-                self.client = chromadb.Client()
-                self.collection = self.client.get_or_create_collection(name=self.collection_name)
-                st.success("✅ Vector store initialized (basic mode)")
-                return
-            except Exception as e3:
-                st.warning(f"Basic ChromaDB failed: {str(e3)[:100]}...")
-            
-            # If all fail, switch to fallback mode
-            raise Exception("All ChromaDB initialization methods failed")
-            
-        except Exception as e:
-            st.warning("⚠️ ChromaDB failed - using in-memory vector storage")
-            st.info("📄 Document search will work in memory (data won't persist between sessions)")
-            self.client = None
-            self.collection = None
-            self.use_fallback = True
+                if method_func():
+                    st.success(f"✅ Vector store initialized ({method_name.lower()})")
+                    return
+            except Exception as e:
+                # Only show detailed errors in debug mode, otherwise just log silently
+                if hasattr(st, 'session_state') and st.session_state.get('debug_mode', False):
+                    st.warning(f"{method_name} failed: {str(e)[:100]}...")
+                continue
+        
+        # All methods failed - use fallback
+        st.info("📄 Using in-memory vector storage (documents won't persist between sessions)")
+        self.client = None
+        self.collection = None
+        self.use_fallback = True
+    
+    def _try_ephemeral_client(self):
+        """Try to initialize with EphemeralClient"""
+        self.client = chromadb.EphemeralClient()
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        return True
+    
+    def _try_settings_client(self):
+        """Try to initialize with explicit settings"""
+        settings = chromadb.config.Settings(
+            anonymized_telemetry=False,
+            allow_reset=True,
+            is_persistent=False
+        )
+        self.client = chromadb.Client(settings)
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        return True
+    
+    def _try_basic_client(self):
+        """Try to initialize with basic client"""
+        self.client = chromadb.Client()
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        return True
     
     @st.cache_resource
     def _load_embedding_model(_self):
