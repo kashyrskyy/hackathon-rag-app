@@ -350,23 +350,23 @@ def main():
 {query}
 
 ### Answer (as a {perspective} to {audience}):"""
-                    
-                    # Generate response
-                    if not llm_client:
-                        response = "🔑 **API Key Required**: Please add your Google API key to Streamlit secrets:\n\n1. Click hamburger menu (☰) → Settings → Secrets\n2. Add: `GOOGLE_API_KEY = \"your_key_here\"`\n3. Save and restart\n\nGet your free API key at: https://makersuite.google.com/app/apikey"
-                    else:
-                        try:
-                            response = llm_client.generate_response(prompt, temperature)
+                
+                # Generate response
+                if not llm_client:
+                    response = "🔑 **API Key Required**: Please add your Google API key to Streamlit secrets:\n\n1. Click hamburger menu (☰) → Settings → Secrets\n2. Add: `GOOGLE_API_KEY = \"your_key_here\"`\n3. Save and restart\n\nGet your free API key at: https://makersuite.google.com/app/apikey"
+                else:
+                    try:
+                        response = llm_client.generate_response(prompt, temperature)
+                        
+                        if not response or response.strip() == "":
+                            response = "⚠️ No response generated. Please check that your Google API key is properly configured in Streamlit secrets."
                             
-                            if not response or response.strip() == "":
-                                response = "⚠️ No response generated. Please check that your Google API key is properly configured in Streamlit secrets."
-                                
-                        except Exception as e:
-                            error_msg = str(e)
-                            if "api_key" in error_msg.lower() or "unauthorized" in error_msg.lower():
-                                response = "🔑 **API Key Error**: Your Google API key may be invalid or expired.\n\nPlease check your API key in Streamlit secrets:\n1. Click hamburger menu (☰) → Settings → Secrets\n2. Verify: `GOOGLE_API_KEY = \"your_key_here\"`\n3. Get a new key at: https://makersuite.google.com/app/apikey"
-                            else:
-                                response = f"❌ **Error generating response**: {error_msg}\n\nPlease check your API key configuration."
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "api_key" in error_msg.lower() or "unauthorized" in error_msg.lower():
+                            response = "🔑 **API Key Error**: Your Google API key may be invalid or expired.\n\nPlease check your API key in Streamlit secrets:\n1. Click hamburger menu (☰) → Settings → Secrets\n2. Verify: `GOOGLE_API_KEY = \"your_key_here\"`\n3. Get a new key at: https://makersuite.google.com/app/apikey"
+                        else:
+                            response = f"❌ **Error generating response**: {error_msg}\n\nPlease check your API key configuration."
                 
                 # Update session state
                 st.session_state.last_query = query
