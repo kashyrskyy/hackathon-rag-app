@@ -243,10 +243,38 @@ class WebSearcher:
     
     def _create_academic_context_result(self, query: str) -> List[Dict[str, str]]:
         """Create contextual academic search result"""
+        # Detect the type of academic query for more specific guidance
+        query_lower = query.lower()
+        
+        if any(term in query_lower for term in ['compare', 'comparison', 'other papers', 'similar domain']):
+            snippet = """To compare research findings across papers in similar domains:
+1. Search Google Scholar, PubMed, or field-specific databases
+2. Look for systematic reviews and meta-analyses in the same area
+3. Compare methodologies, sample sizes, and statistical approaches
+4. Examine how findings align or contradict with established literature
+5. Consider publication dates and technological advances between studies
+6. Check citation patterns to identify influential papers in the field"""
+        elif any(term in query_lower for term in ['findings', 'results', 'conclusions']):
+            snippet = """For analyzing research findings and their significance:
+1. Examine the statistical significance and effect sizes reported
+2. Consider the study design and potential limitations
+3. Look for replication studies and validation of results
+4. Check how findings contribute to existing theoretical frameworks
+5. Assess the practical implications and real-world applications
+6. Review peer commentary and citations of the work"""
+        else:
+            snippet = """For comprehensive academic research analysis:
+1. Use databases like Google Scholar, PubMed, Web of Science, or Scopus
+2. Search with relevant keywords and MeSH terms if applicable
+3. Filter by publication date, study type, and impact factor
+4. Read abstracts and full papers from reputable journals
+5. Look for systematic reviews and meta-analyses
+6. Check citation networks to find related influential work"""
+        
         return [{
-            "title": f"Academic Research Context: {query[:100]}",
-            "snippet": "For academic research comparisons, consider searching databases like PubMed, Google Scholar, or ResearchGate for recent publications in the same domain. Compare methodologies, sample sizes, findings, and conclusions across studies.",
-            "url": "https://pubmed.ncbi.nlm.nih.gov/"
+            "title": f"Academic Research Guidance: {query[:80]}...",
+            "snippet": snippet,
+            "url": "https://scholar.google.com/"
         }]
     
     def _create_fallback_result(self, query: str) -> List[Dict[str, str]]:

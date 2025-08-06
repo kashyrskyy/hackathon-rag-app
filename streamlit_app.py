@@ -430,6 +430,16 @@ def main():
                     else:
                         st.info("🚫 Web search disabled - using document knowledge only")
                 
+                # Create web search status for prompt
+                web_search_status = ""
+                if enable_web_search:
+                    if web_results:
+                        web_search_status = f"- Web search was successful and found {len(web_results)} relevant results (included in context below)"
+                    else:
+                        web_search_status = "- Web search was attempted but returned no results due to rate limiting. Use your training knowledge for current information"
+                else:
+                    web_search_status = "- Web search is disabled. Use only the provided document context and your training knowledge"
+
                 # Create prompt
                 prompt = f"""You are responding as a {perspective}, and your response must be tailored for an audience of {audience}.
 
@@ -439,7 +449,7 @@ def main():
 - Avoid jargon unless necessary, and define any technical terms
 - Use the following context as background, not as quoted text
 - If the context doesn't contain relevant information, say so clearly
-- Integrate web search results naturally when available
+{web_search_status}
 
 ### Context:
 {context}
