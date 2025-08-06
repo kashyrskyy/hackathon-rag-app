@@ -7,8 +7,10 @@ A powerful document Q&A system with web search capabilities
 import sys
 try:
     __import__('pysqlite3')
-    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-except ImportError:
+    if 'pysqlite3' in sys.modules:
+        sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except (ImportError, KeyError):
+    # pysqlite3 not available or already processed
     pass
 
 import streamlit as st
@@ -380,6 +382,10 @@ def main():
                                     st.text(f"Real Result {i}: {result.get('title', 'No title')[:100]}...")
                             else:
                                 st.warning("⚠️ All web results were fallback responses (rate limited)")
+                        
+                        # Show rate limiting notice if no real results
+                        if not real_web_results and enable_web_search:
+                            st.info("💡 **Web search is currently rate limited.** For better web search, consider getting a free SerpAPI key (100 searches/month) and adding it to Streamlit secrets as `SERP_API_KEY`.")
                         
                         # Use only real web results
                         web_results = real_web_results
