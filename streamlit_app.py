@@ -66,12 +66,29 @@ def get_api_key() -> str:
 
 def initialize_session_state():
     """Initialize session state variables"""
+    # Core components
     if "vector_store" not in st.session_state:
         st.session_state.vector_store = VectorStore()
+    
+    # Processing status
     if "documents_processed" not in st.session_state:
         st.session_state.documents_processed = False
+    if "processing_status" not in st.session_state:
+        st.session_state.processing_status = ""
+    if "last_query" not in st.session_state:
+        st.session_state.last_query = ""
+    if "last_response" not in st.session_state:
+        st.session_state.last_response = ""
+    
+    # Chat and history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    if "query_count" not in st.session_state:
+        st.session_state.query_count = 0
+    
+    # Document stats
+    if "document_stats" not in st.session_state:
+        st.session_state.document_stats = []
 
 def main():
     """Main application function"""
@@ -135,19 +152,40 @@ def main():
         # Vector store status
         st.subheader("📊 Status")
         doc_count = st.session_state.vector_store.get_collection_count()
-        st.metric("Documents Stored", doc_count)
+        col_a, col_b = st.columns(2)
+        col_a.metric("Documents", doc_count)
+        col_b.metric("Queries", st.session_state.query_count)
         
-        if st.button("🗑️ Clear All Documents"):
+        # Status indicators
+        if st.session_state.documents_processed:
+            st.success("✅ Documents Ready")
+        else:
+            st.info("📄 Upload documents to begin")
+            
+        if st.session_state.last_response:
+            st.success("💬 Ready for questions")
+        
+        # Quick actions
+        st.subheader("⚡ Quick Actions")
+        
+        if st.button("🗑️ Clear All Data"):
+            # Clear all session state
             st.session_state.vector_store.clear_collection()
             st.session_state.documents_processed = False
+            st.session_state.processing_status = ""
+            st.session_state.last_query = ""
+            st.session_state.last_response = ""
             st.session_state.chat_history = []
+            st.session_state.query_count = 0
+            st.session_state.document_stats = []
+            st.success("🧹 All data cleared!")
             st.rerun()
     
     # Initialize LLM client
     llm_client = GeminiClient(api_key, selected_model)
     
-    # Main content area
-    col1, col2 = st.columns([1, 1])
+    # Main content area - improved layout inspired by bio-app
+    col1, col2 = st.columns([1, 2])  # Controls on left, results on right
     
     with col1:
         st.subheader("📄 Document Upload")
@@ -185,17 +223,35 @@ def main():
                         # Add to vector store
                         st.session_state.vector_store.add_documents(documents, all_chunks)
                         st.session_state.documents_processed = True
+                        st.session_state.processing_status = f"✅ Processed {len(documents)} documents with {sum(len(chunks) for chunks in all_chunks)} total chunks"
+                        st.session_state.document_stats = [(filename, DocumentProcessor.get_document_stats(text)) for filename, text in documents]
                         
-                        st.success(f"✅ Successfully processed {len(documents)} documents!")
+                        st.success(st.session_state.processing_status)
     
     with col2:
+        # Show processing status if available
+        if st.session_state.processing_status:
+            st.info(st.session_state.processing_status)
+        
+        # Show document stats
+        if st.session_state.document_stats:
+            with st.expander("📊 Document Statistics", expanded=False):
+                for filename, stats in st.session_state.document_stats:
+                    st.markdown(f"**{filename}:**")
+                    col_a, col_b, col_c, col_d = st.columns(4)
+                    col_a.metric("Words", stats['words'])
+                    col_b.metric("Characters", stats['characters'])
+                    col_c.metric("Lines", stats['lines'])
+                    col_d.metric("Est. Tokens", stats['estimated_tokens'])
+        
         st.subheader("💬 Ask Questions")
         
         # Query input
         query = st.text_area(
             "What would you like to know?",
-            height=100,
-            placeholder="Ask anything about your uploaded documents..."
+            height=80,
+            placeholder="Ask anything about your uploaded documents...",
+            value=st.session_state.last_query
         )
         
         if query and st.button("🔍 Get Answer"):
@@ -256,9 +312,14 @@ def main():
                     # Generate response
                     response = llm_client.generate_response(prompt, temperature)
                     
+                    # Update session state
+                    st.session_state.last_query = query
+                    st.session_state.last_response = response
+                    st.session_state.query_count += 1
+                    
                     # Display results
                     st.markdown("### 🎯 Answer")
-                    st.markdown(response)
+                    st.text_area("Generated Response", response, height=400)
                     
                     # Show sources
                     if doc_results or web_results:
@@ -283,6 +344,15 @@ def main():
                         "response": response,
                         "timestamp": time.time()
                     })
+        
+        # Show last response if available (even when not actively querying)
+        if st.session_state.last_response and not query:
+            st.markdown("### 💭 Last Response")
+            st.text_area("Previous Answer", st.session_state.last_response, height=300)
+            
+            # Show query count
+            if st.session_state.query_count > 0:
+                st.caption(f"Total queries processed: {st.session_state.query_count}")
     
     # Chat History
     if st.session_state.chat_history:

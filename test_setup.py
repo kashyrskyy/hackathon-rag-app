@@ -78,6 +78,12 @@ def test_dependencies():
         print("❌ PyPDF2 not installed")
         return False
     
+    try:
+        from duckduckgo_search import DDGS
+        print("✅ DuckDuckGo Search library available")
+    except ImportError:
+        print("⚠️  DuckDuckGo Search library not installed (optional)")
+    
     return True
 
 def test_configuration():

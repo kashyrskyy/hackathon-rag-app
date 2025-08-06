@@ -8,6 +8,13 @@ import streamlit as st
 from bs4 import BeautifulSoup
 import time
 
+try:
+    from duckduckgo_search import DDGS
+    DDGS_AVAILABLE = True
+except ImportError:
+    DDGS_AVAILABLE = False
+    st.warning("⚠️ duckduckgo-search not installed. Web search will use fallback method.")
+
 class WebSearcher:
     """Handles web search operations"""
     
@@ -33,8 +40,10 @@ class WebSearcher:
         """
         if self.serp_api_key:
             return self._search_with_serpapi(query, num_results)
+        elif DDGS_AVAILABLE:
+            return self._search_with_ddgs_library(query, num_results)
         else:
-            return self._search_with_duckduckgo(query, num_results)
+            return self._search_with_duckduckgo_api(query, num_results)
     
     def _search_with_serpapi(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Search using SerpAPI (requires API key)"""
@@ -64,9 +73,31 @@ class WebSearcher:
             
         except Exception as e:
             st.warning(f"SerpAPI search failed: {str(e)}")
-            return self._search_with_duckduckgo(query, num_results)
+            if DDGS_AVAILABLE:
+                return self._search_with_ddgs_library(query, num_results)
+            else:
+                return self._search_with_duckduckgo_api(query, num_results)
     
-    def _search_with_duckduckgo(self, query: str, num_results: int) -> List[Dict[str, str]]:
+    def _search_with_ddgs_library(self, query: str, num_results: int) -> List[Dict[str, str]]:
+        """Enhanced search using duckduckgo-search library"""
+        try:
+            results = []
+            with DDGS() as ddgs:
+                search_results = ddgs.text(query, max_results=num_results)
+                for result in search_results:
+                    results.append({
+                        "title": result.get("title", ""),
+                        "snippet": result.get("body", "") or result.get("content", ""),
+                        "url": result.get("href", "")
+                    })
+            
+            return results if results else self._create_fallback_result(query)
+            
+        except Exception as e:
+            st.warning(f"DDGS library search failed: {str(e)}")
+            return self._search_with_duckduckgo_api(query, num_results)
+    
+    def _search_with_duckduckgo_api(self, query: str, num_results: int) -> List[Dict[str, str]]:
         """Fallback search using DuckDuckGo (no API key required)"""
         try:
             # Use DuckDuckGo's instant answer API
@@ -101,23 +132,19 @@ class WebSearcher:
                         "url": topic.get("FirstURL", "")
                     })
             
-            # If no results, create a simple response
-            if not results:
-                results.append({
-                    "title": f"Search: {query}",
-                    "snippet": f"No specific web results found for '{query}'. Please try a different search term.",
-                    "url": ""
-                })
-            
-            return results
+            return results if results else self._create_fallback_result(query)
             
         except Exception as e:
             st.warning(f"Web search failed: {str(e)}")
-            return [{
-                "title": f"Search: {query}",
-                "snippet": f"Web search temporarily unavailable. Using document knowledge only.",
-                "url": ""
-            }]
+            return self._create_fallback_result(query)
+    
+    def _create_fallback_result(self, query: str) -> List[Dict[str, str]]:
+        """Create a fallback result when search fails"""
+        return [{
+            "title": f"Search: {query}",
+            "snippet": f"Web search temporarily unavailable. Using document knowledge only.",
+            "url": ""
+        }]
     
     def extract_text_from_url(self, url: str, max_chars: int = 1000) -> str:
         """

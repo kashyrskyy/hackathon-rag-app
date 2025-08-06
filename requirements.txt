@@ -17,6 +17,7 @@ numpy==1.26.4
 # Web Search (Optional - for agent capabilities)
 requests==2.32.3
 beautifulsoup4==4.12.3
+duckduckgo-search==6.3.5
 
 # Environment Management
 python-decouple==3.8
