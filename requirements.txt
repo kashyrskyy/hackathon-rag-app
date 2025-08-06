@@ -3,7 +3,7 @@ streamlit==1.40.1
 streamlit-option-menu==0.4.0
 
 # SQLite fix for ChromaDB on Streamlit Cloud
-pysqlite3-binary==0.5.4
+pysqlite3-binary==0.5.3
 
 # PDF Processing
 PyPDF2==3.0.1

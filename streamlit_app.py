@@ -91,11 +91,16 @@ def initialize_session_state():
     # Core components
     if "vector_store" not in st.session_state:
         try:
-            st.session_state.vector_store = VectorStore()
+            with st.spinner("🔧 Initializing vector store..."):
+                st.session_state.vector_store = VectorStore()
         except Exception as e:
-            st.error(f"Failed to initialize vector store: {str(e)}")
-            st.info("📄 App will run in web-search only mode")
-            st.session_state.vector_store = None
+            st.warning(f"Vector store initialization had issues: {str(e)[:100]}...")
+            st.info("📄 App will continue with available functionality")
+            # Try to initialize anyway - the VectorStore class handles fallback internally
+            try:
+                st.session_state.vector_store = VectorStore()
+            except:
+                st.session_state.vector_store = None
     
     # Processing status
     if "documents_processed" not in st.session_state:

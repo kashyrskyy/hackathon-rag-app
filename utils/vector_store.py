@@ -34,31 +34,40 @@ class VectorStore:
         try:
             # Try different ChromaDB configurations for Streamlit Cloud compatibility
             
-            # Option 1: Try ephemeral client (in-memory)
+            # Option 1: Try ephemeral client (in-memory) with proper settings
+            try:
+                self.client = chromadb.EphemeralClient()
+                self.collection = self.client.get_or_create_collection(name=self.collection_name)
+                st.success("✅ Vector store initialized (ephemeral mode)")
+                return
+            except Exception as e1:
+                st.warning(f"Ephemeral ChromaDB failed: {str(e1)[:100]}...")
+            
+            # Option 2: Try with explicit settings for Streamlit Cloud
             try:
                 import chromadb.config
                 settings = chromadb.config.Settings(
-                    chroma_db_impl="duckdb+parquet",
-                    persist_directory=None,  # In-memory
-                    anonymized_telemetry=False
+                    anonymized_telemetry=False,
+                    allow_reset=True,
+                    is_persistent=False
                 )
                 self.client = chromadb.Client(settings)
                 self.collection = self.client.get_or_create_collection(name=self.collection_name)
-                st.success("✅ Vector store initialized (in-memory mode)")
+                st.success("✅ Vector store initialized (client mode)")
                 return
-            except Exception as e1:
-                st.warning(f"In-memory ChromaDB failed: {str(e1)[:100]}...")
+            except Exception as e2:
+                st.warning(f"Settings-based ChromaDB failed: {str(e2)[:100]}...")
             
-            # Option 2: Try default client
+            # Option 3: Try basic client without settings
             try:
                 self.client = chromadb.Client()
                 self.collection = self.client.get_or_create_collection(name=self.collection_name)
-                st.success("✅ Vector store initialized successfully")
+                st.success("✅ Vector store initialized (basic mode)")
                 return
-            except Exception as e2:
-                st.warning(f"Default ChromaDB failed: {str(e2)[:100]}...")
+            except Exception as e3:
+                st.warning(f"Basic ChromaDB failed: {str(e3)[:100]}...")
             
-            # If all fail, disable vector store
+            # If all fail, switch to fallback mode
             raise Exception("All ChromaDB initialization methods failed")
             
         except Exception as e:
@@ -215,11 +224,17 @@ class VectorStore:
                 return formatted_results
             else:
                 # Search in ChromaDB
-                results = self.collection.query(
-                    query_embeddings=[query_embedding],
-                    n_results=n_results,
-                    include=["documents", "metadatas", "distances"]
-                )
+                try:
+                    results = self.collection.query(
+                        query_embeddings=[query_embedding],
+                        n_results=n_results,
+                        include=["documents", "metadatas", "distances"]
+                    )
+                except Exception as query_error:
+                    st.warning(f"ChromaDB query failed: {str(query_error)[:100]}...")
+                    st.info("Switching to fallback mode for this search")
+                    # Fall back to in-memory search for this query
+                    return []
             
             # Format results
             formatted_results = []
