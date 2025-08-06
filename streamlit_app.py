@@ -304,36 +304,36 @@ def main():
                 
                 # Search documents
                 doc_results = st.session_state.vector_store.search(query, num_doc_results) if st.session_state.vector_store else []
-                    
-                    # Search web if enabled
-                    web_results = []
-                    if enable_web_search:
-                        web_results = web_searcher.search_web(query, num_web_results)
-                    
-                    # Prepare context
-                    context_parts = []
-                    
-                    # Add document context
-                    if doc_results:
-                        context_parts.append("=== DOCUMENT CONTEXT ===")
-                        for i, result in enumerate(doc_results, 1):
-                            source = result['metadata'].get('source', 'Unknown')
-                            context_parts.append(f"Source {i} ({source}):")
-                            context_parts.append(result['content'])
-                            context_parts.append("")
-                    
-                    # Add web context
-                    if web_results:
-                        context_parts.append("=== WEB SEARCH CONTEXT ===")
-                        for i, result in enumerate(web_results, 1):
-                            context_parts.append(f"Web Result {i}: {result['title']}")
-                            context_parts.append(result['snippet'])
-                            context_parts.append("")
-                    
-                    context = "\n".join(context_parts)
-                    
-                    # Create prompt
-                    prompt = f"""You are responding as a {perspective}, and your response must be tailored for an audience of {audience}.
+                
+                # Search web if enabled
+                web_results = []
+                if enable_web_search:
+                    web_results = web_searcher.search_web(query, num_web_results)
+                
+                # Prepare context
+                context_parts = []
+                
+                # Add document context
+                if doc_results:
+                    context_parts.append("=== DOCUMENT CONTEXT ===")
+                    for i, result in enumerate(doc_results, 1):
+                        source = result['metadata'].get('source', 'Unknown')
+                        context_parts.append(f"Source {i} ({source}):")
+                        context_parts.append(result['content'])
+                        context_parts.append("")
+                
+                # Add web context
+                if web_results:
+                    context_parts.append("=== WEB SEARCH CONTEXT ===")
+                    for i, result in enumerate(web_results, 1):
+                        context_parts.append(f"Web Result {i}: {result['title']}")
+                        context_parts.append(result['snippet'])
+                        context_parts.append("")
+                
+                context = "\n".join(context_parts)
+                
+                # Create prompt
+                prompt = f"""You are responding as a {perspective}, and your response must be tailored for an audience of {audience}.
 
 ### Instructions:
 - Use tone, vocabulary, and examples suitable for {audience}
