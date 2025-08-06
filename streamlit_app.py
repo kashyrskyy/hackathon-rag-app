@@ -2,6 +2,15 @@
 Enhanced RAG Application with Google Gemini API
 A powerful document Q&A system with web search capabilities
 """
+
+# Fix for ChromaDB SQLite compatibility on Streamlit Cloud
+import sys
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 import streamlit as st
 import os
 from typing import List, Dict
