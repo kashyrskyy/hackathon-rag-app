@@ -180,7 +180,7 @@ def main():
         
         # Show SerpAPI status only in debug mode
         if serp_api_key and st.session_state.get('debug_mode', False):
-            st.success("🔑 SerpAPI configured - premium Google search active")
+            st.success("🔑 SerpAPI configured - Google search active")
     else:
         st.warning("⚠️ Web search functionality is disabled due to import issues")
     
@@ -239,13 +239,7 @@ def main():
         
         # Web search status (only show in debug mode)
         if st.session_state.get('debug_mode', False):
-            if enable_web_search:
-                try:
-                    from duckduckgo_search import DDGS
-                    st.success("✅ DuckDuckGo Search Available")
-                except ImportError:
-                    st.warning("⚠️ Using fallback web search")
-            else:
+            if not enable_web_search:
                 st.info("🚫 Web search disabled")
         
         # Vector store status
@@ -374,6 +368,10 @@ def main():
         # Debug: Show query count update
         if st.session_state.get('debug_mode', False):
             st.info(f"🔢 Query count updated to: {st.session_state.query_count}")
+        
+        # Force sidebar refresh on first query to show updated count
+        if st.session_state.query_count == 1:
+            st.rerun()
         
         doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
         if not st.session_state.documents_processed and doc_count == 0 and not enable_web_search:
