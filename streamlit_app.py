@@ -212,7 +212,7 @@ def main():
             "🌡️ Response Creativity (Temperature)",
             min_value=0.0,
             max_value=1.0,
-            value=0.7,
+            value=0.5,
             step=0.1,
             help="Lower values = more focused, Higher values = more creative"
         )
