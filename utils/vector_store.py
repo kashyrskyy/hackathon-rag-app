@@ -48,11 +48,11 @@ class VectorStore:
                     st.warning(f"{method_name} failed: {str(e)[:100]}...")
                 continue
         
-        # All methods failed - use fallback
-        st.info("📄 Using in-memory vector storage (documents won't persist between sessions)")
-        self.client = None
-        self.collection = None
-        self.use_fallback = True
+            # All methods failed - use fallback
+    st.info("💾 Documents will be stored temporarily - you'll need to re-upload them if you refresh the page")
+    self.client = None
+    self.collection = None
+    self.use_fallback = True
     
     def _try_ephemeral_client(self):
         """Try to initialize with EphemeralClient"""

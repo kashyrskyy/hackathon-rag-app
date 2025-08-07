@@ -255,6 +255,10 @@ def main():
         col_a.metric("Documents", doc_count)
         col_b.metric("Queries", st.session_state.query_count)
         
+        # Debug: Show sidebar render info
+        if st.session_state.get('debug_mode', False):
+            st.caption(f"🔄 Sidebar rendered - Query count: {st.session_state.query_count}")
+        
         # Status indicators (only in debug mode)
         if st.session_state.get('debug_mode', False):
             if st.session_state.documents_processed:
@@ -366,6 +370,10 @@ def main():
     if query and st.button("🔍 Get Answer"):
         # Always increment query count when button is clicked
         st.session_state.query_count += 1
+        
+        # Debug: Show query count update
+        if st.session_state.get('debug_mode', False):
+            st.info(f"🔢 Query count updated to: {st.session_state.query_count}")
         
         doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
         if not st.session_state.documents_processed and doc_count == 0 and not enable_web_search:
