@@ -178,8 +178,8 @@ def main():
     if WebSearcher:
         web_searcher = WebSearcher(serp_api_key)
         
-        # Show SerpAPI status
-        if serp_api_key:
+        # Show SerpAPI status only in debug mode
+        if serp_api_key and st.session_state.get('debug_mode', False):
             st.success("🔑 SerpAPI configured - premium Google search active")
     else:
         st.warning("⚠️ Web search functionality is disabled due to import issues")
@@ -255,14 +255,15 @@ def main():
         col_a.metric("Documents", doc_count)
         col_b.metric("Queries", st.session_state.query_count)
         
-        # Status indicators
-        if st.session_state.documents_processed:
-            st.success("✅ Documents Ready")
-        else:
-            st.info("📄 Upload documents to begin")
-            
-        if st.session_state.last_response:
-            st.success("💬 Ready for questions")
+        # Status indicators (only in debug mode)
+        if st.session_state.get('debug_mode', False):
+            if st.session_state.documents_processed:
+                st.success("✅ Documents Ready")
+            else:
+                st.info("📄 Upload documents to begin")
+                
+            if st.session_state.last_response:
+                st.success("💬 Ready for questions")
         
         # Quick actions
         st.subheader("⚡ Quick Actions")
@@ -363,6 +364,9 @@ def main():
     )
     
     if query and st.button("🔍 Get Answer"):
+        # Always increment query count when button is clicked
+        st.session_state.query_count += 1
+        
         doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
         if not st.session_state.documents_processed and doc_count == 0 and not enable_web_search:
             st.warning("⚠️ Please upload documents or enable web search!")
@@ -488,7 +492,6 @@ def main():
                 # Update session state
                 st.session_state.last_query = query
                 st.session_state.last_response = response
-                st.session_state.query_count += 1
                 
                 # Display results
                 st.markdown("### 🎯 Answer")

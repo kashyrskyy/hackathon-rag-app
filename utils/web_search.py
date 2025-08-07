@@ -56,7 +56,6 @@ class WebSearcher:
         try:
             # Always try SerpAPI first if available
             if self.serp_api_key:
-                st.info("🔑 Using SerpAPI for web search...")
                 results = self._search_with_serpapi(query, num_results)
                 if results:  # SerpAPI succeeded
                     return results
@@ -64,10 +63,8 @@ class WebSearcher:
             
             # Fallback to DuckDuckGo only if SerpAPI failed or not available
             if DDGS_AVAILABLE:
-                st.info("🔍 Falling back to DuckDuckGo search...")
                 return self._search_with_ddgs_library(query, num_results)
             else:
-                st.info("🔍 Using DuckDuckGo API as final fallback...")
                 return self._search_with_duckduckgo_api(query, num_results)
                 
         except Exception as e:
