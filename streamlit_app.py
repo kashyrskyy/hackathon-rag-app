@@ -242,16 +242,10 @@ def main():
             if not enable_web_search:
                 st.info("🚫 Web search disabled")
         
-        # Vector store status
-        st.subheader("📊 Status")
-        doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
-        col_a, col_b = st.columns(2)
-        col_a.metric("Documents", doc_count)
-        col_b.metric("Queries", st.session_state.query_count)
-        
         # Debug: Show sidebar render info
         if st.session_state.get('debug_mode', False):
-            st.caption(f"🔄 Sidebar rendered - Query count: {st.session_state.query_count}")
+            doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
+            st.caption(f"🔄 Documents: {doc_count} | Queries: {st.session_state.query_count}")
         
         # Status indicators (only in debug mode)
         if st.session_state.get('debug_mode', False):
