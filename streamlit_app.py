@@ -369,10 +369,6 @@ def main():
         if st.session_state.get('debug_mode', False):
             st.info(f"🔢 Query count updated to: {st.session_state.query_count}")
         
-        # Force sidebar refresh on first query to show updated count
-        if st.session_state.query_count == 1:
-            st.rerun()
-        
         doc_count = st.session_state.vector_store.get_collection_count() if st.session_state.vector_store else 0
         if not st.session_state.documents_processed and doc_count == 0 and not enable_web_search:
             st.warning("⚠️ Please upload documents or enable web search!")
