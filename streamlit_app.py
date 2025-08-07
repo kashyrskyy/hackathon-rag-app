@@ -61,7 +61,7 @@ GeminiClient, DocumentProcessor, VectorStore, WebSearcher, import_error = import
 
 # Configure page
 st.set_page_config(
-    page_title="🧠 RAG - AI Research Assistant",
+    page_title="RAG - AI Research Assistant",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
