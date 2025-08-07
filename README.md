@@ -8,7 +8,7 @@ A powerful document Q&A system with AI-powered responses and web search enhancem
 
 ## 🚀 Live Demo
 
-**[Try the app here!](https://your-app-name.streamlit.app)** *(Link will be available after deployment)*
+**[Try the app here!](https://hackathon-rag.streamlit.app/)** - Experience the RAG assistant in action!
 
 ## ✨ Features
 
