@@ -61,7 +61,7 @@ GeminiClient, DocumentProcessor, VectorStore, WebSearcher, import_error = import
 
 # Configure page
 st.set_page_config(
-    page_title="🧠 Enhanced RAG Assistant",
+    page_title="🧠 RAG - AI Research Assistant",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -165,7 +165,7 @@ def main():
     initialize_session_state()
     
     # Header
-    st.markdown('<h1 class="main-header">🧠 Enhanced RAG Assistant</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🧠 RAG - AI as a Research Assistant</h1>', unsafe_allow_html=True)
     st.markdown("### 📚 Upload documents, ask questions, and get AI-powered answers with web search enhancement!")
     
     # Get API key
