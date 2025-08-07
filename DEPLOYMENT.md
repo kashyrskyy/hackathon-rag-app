@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide
 
-Complete guide to deploy your Enhanced RAG Assistant to Streamlit Community Cloud.
+Complete guide to deploy your RAG - AI Research Assistant to Streamlit Community Cloud.
 
 ## 📋 Pre-Deployment Checklist
 
@@ -153,8 +153,8 @@ DEBUG = "true"
 
 ### Built-in Metrics
 Your app automatically tracks:
-- Document count in vector store
-- Processing status
+- Processing status and document statistics
+- Debug information (when debug mode enabled)
 - Chat history (session-based)
 
 ### Streamlit Analytics
@@ -257,6 +257,6 @@ Track these for your hackathon presentation:
 
 ---
 
-**🚀 Ready to deploy? Your RAG app will be live in minutes!**
+**🚀 Ready to deploy? Your RAG - AI Research Assistant will be live in minutes!**
 
 *Need help? Check the troubleshooting section or create an issue in the repository.*

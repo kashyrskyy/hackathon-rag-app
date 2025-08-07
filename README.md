@@ -1,4 +1,4 @@
-# 🧠 Enhanced RAG Assistant
+# 🧠 RAG - AI as a Research Assistant
 
 A powerful document Q&A system with AI-powered responses and web search enhancement. Built for hackathons and deployed on Streamlit Community Cloud.
 
@@ -20,8 +20,8 @@ A powerful document Q&A system with AI-powered responses and web search enhancem
 
 ### 🌐 Enhanced with Web Search
 - **Real-time Information**: Augment document knowledge with live web search
-- **Multiple Sources**: Combine document context with web search results
-- **Fallback Search**: DuckDuckGo integration when SerpAPI is unavailable
+- **SerpAPI Primary**: Premium Google search for reliable results
+- **DuckDuckGo Fallback**: Free search when SerpAPI is unavailable
 
 ### 🎭 Customizable Response Style
 - **Perspective Control**: Choose AI persona (scientist, teacher, consultant, etc.)
@@ -30,8 +30,8 @@ A powerful document Q&A system with AI-powered responses and web search enhancem
 
 ### 💡 Advanced Features
 - **Multi-model Support**: Choose between Gemini 1.5 Flash, Pro, and 2.0 models
-- **Chat History**: Track recent conversations
-- **Document Statistics**: View processing stats and token estimates
+- **Debug Mode**: Detailed processing information for developers
+- **Clean Interface**: Streamlined UI focused on essential functionality
 - **Source Attribution**: See which documents and web sources informed each answer
 
 ## 🛠️ Technology Stack

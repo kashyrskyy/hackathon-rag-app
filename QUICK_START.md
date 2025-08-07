@@ -1,6 +1,6 @@
 # 🚀 Quick Start Guide
 
-Get your Enhanced RAG Assistant running in **under 10 minutes**!
+Get your RAG - AI Research Assistant running in **under 10 minutes**!
 
 ## 📝 What You'll Need
 
